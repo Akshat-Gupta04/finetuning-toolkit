@@ -1,0 +1,175 @@
+# FLUX QLoRA Configuration
+# Optimized for A40 GPU with your specific requirements
+
+model:
+  name: "flux-qlora-training"
+  cache_dir: "./cache"
+
+  # QLoRA configuration (4-bit quantization)
+  use_lora: true
+  lora_type: "qlora"
+  lora_rank: 32
+  lora_alpha: 32
+  lora_dropout: 0.1
+  use_qlora: true
+
+  # QLoRA specific settings
+  qlora_config:
+    load_in_4bit: true
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "bfloat16"
+
+  # FLUX target modules for LoRA
+  lora_target_modules:
+    flux: ["to_q", "to_k", "to_v", "to_out.0", "proj_in", "proj_out", "ff.net.0.proj", "ff.net.2"]
+
+  # Quantization
+  use_8bit: false
+  use_4bit: true
+
+training:
+  output_dir: "/workspace/finetuning-toolkit/outputs/flux_qlora"
+  logging_dir: "/workspace/finetuning-toolkit/outputs/flux_qlora/logs"
+  cache_dir: "./cache"
+  seed: 42
+
+  # Training parameters optimized for QLoRA on A40
+  train_batch_size: 1
+  gradient_accumulation_steps: 8
+  num_train_epochs: 100
+  max_train_steps: 1000
+  learning_rate: 1e-4
+  scale_lr: false
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 100
+  lr_num_cycles: 1
+
+  # Optimization
+  use_8bit_adam: false
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1e-2
+  adam_epsilon: 1e-08
+  max_grad_norm: 1.0
+
+  # Memory optimization for QLoRA
+  gradient_checkpointing: true
+  mixed_precision: "bf16"
+  allow_tf32: true
+  use_ema: false
+  enable_xformers_memory_efficient_attention: true
+
+  # Data loading
+  dataloader_num_workers: 4
+  pin_memory: true
+  use_bucket_sampler: true
+
+  # Checkpointing - save every 250 steps
+  checkpointing_steps: 250
+  checkpoints_total_limit: 5
+  resume_from_checkpoint: null
+
+  # Validation - test every 250 steps
+  validation_steps: 250
+  validation_epochs: 10
+
+  # Logging
+  report_to: null
+  logging_steps: 10
+  save_steps: 250
+
+  # Variable size training for FLUX
+  max_width: 1280
+  max_height: 1280
+  max_resolution: 1024
+  
+  # Aspect ratio buckets optimized for FLUX
+  bucket_sizes:
+    - [1024, 1024]  # Square
+    - [1152, 896]   # 4:3 landscape
+    - [896, 1152]   # 3:4 portrait
+    - [1344, 768]   # 16:9 landscape
+    - [768, 1344]   # 9:16 portrait
+    - [1216, 832]   # 3:2 landscape
+    - [832, 1216]   # 2:3 portrait
+
+dataset:
+  train_data_dir: "/workspace/finetuning-toolkit/data/train"
+  validation_data_dir: "/workspace/finetuning-toolkit/data/validation"
+
+  # Data format
+  image_column: "image"
+  caption_column: "caption"
+
+  # Text processing
+  max_sequence_length: 512
+  tokenizer_max_length: 512
+
+  # Image processing for FLUX
+  resolution: 1024
+
+  # Variable size processing
+  resize_mode: "pad"
+  random_flip: 0.0
+  normalize: true
+
+  # Preprocessing
+  preprocessing_num_workers: 4
+
+validation:
+  # Custom validation prompts including your test prompt
+  validation_prompts:
+    - "a solo indian girl wearing a tshirt is standing in a room"
+    - "A beautiful landscape with mountains and lakes"
+    - "A portrait of a person in artistic style"
+    - "A futuristic cityscape at sunset"
+  num_validation_images: 4
+
+  # Validation settings
+  negative_prompt: "blurry, low quality, distorted, ugly, deformed"
+  guidance_scale: 7.5
+  num_inference_steps: 20
+  validation_epochs: 10
+
+# Variable size settings
+variable_size:
+  preserve_aspect_ratio: true
+  pad_color: [0, 0, 0]
+  enable_bucketing: true
+  bucket_tolerance: 0.1
+  min_bucket_size: 1
+  max_pixels_per_batch: 1048576  # 1024*1024 for QLoRA memory efficiency
+
+# Model-specific overrides for FLUX
+model_overrides:
+  flux:
+    pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
+    guidance_scale: 7.5
+    num_inference_steps: 20
+    model_type: "text_to_image"
+
+# A40 optimizations for QLoRA
+hardware_optimizations:
+  enable_large_batch_training: false  # QLoRA uses smaller batches
+  use_gradient_checkpointing: true
+  enable_memory_efficient_attention: true
+  use_tf32: true
+  use_bf16: true
+
+  # QLoRA optimized batch sizes for A40
+  recommended_batch_sizes:
+    flux_1024: 1  # Conservative for QLoRA
+
+# QLoRA specific configuration
+lora_configs:
+  qlora:
+    rank: 32
+    alpha: 32
+    dropout: 0.1
+    bias: "none"
+    task_type: "DIFFUSION"
+    load_in_4bit: true
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "bfloat16"
