@@ -1,0 +1,141 @@
+# FLUX Text-to-Image Model Configuration
+# Optimized for A40 GPU (48GB VRAM)
+
+model:
+  model_name: "flux"
+  pretrained_model_path: "black-forest-labs/FLUX.1-dev"
+  cache_dir: "./cache"
+  revision: null
+  torch_dtype: "bfloat16"
+  device_map: null
+  
+  # LoRA Configuration
+  use_lora: true
+  lora_type: "lora"  # Options: lora, qlora, dora
+  lora_rank: 64
+  lora_alpha: 64
+  lora_dropout: 0.1
+  lora_target_modules:
+    - "to_q"
+    - "to_k" 
+    - "to_v"
+    - "to_out.0"
+    - "proj_in"
+    - "proj_out"
+    - "ff.net.0.proj"
+    - "ff.net.2"
+  
+  # Quantization (for QLoRA)
+  use_4bit: false
+  use_8bit: false
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+dataset:
+  dataset_type: "text_to_image"
+  data_dir: "./data"
+  image_column: "image"
+  caption_column: "caption"
+  
+  # Image processing
+  resolution: 1024
+  max_resolution: 2048
+  min_resolution: 512
+  center_crop: true
+  random_flip: 0.0
+  
+  # Text processing
+  max_sequence_length: 512
+  
+  # Auto-captioning
+  auto_caption: false
+  captioning_model: "blip2"
+  quality_threshold: 0.7
+  
+  # Variable size training
+  variable_size: true
+  bucket_sizes:
+    - [1024, 1024]  # Square
+    - [1152, 896]   # 4:3
+    - [896, 1152]   # 3:4
+    - [1344, 768]   # 16:9
+    - [768, 1344]   # 9:16
+    - [1216, 832]   # 3:2
+    - [832, 1216]   # 2:3
+
+training:
+  output_dir: "./outputs/flux"
+  logging_dir: "./outputs/flux/logs"
+  
+  # Training parameters
+  num_train_epochs: 1
+  max_train_steps: 1000
+  train_batch_size: 1
+  gradient_accumulation_steps: 8
+  learning_rate: 1e-4
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 100
+  lr_num_cycles: 1
+  
+  # Optimization
+  use_8bit_adam: false
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1e-8
+  max_grad_norm: 1.0
+  
+  # Mixed precision and acceleration
+  mixed_precision: "bf16"
+  gradient_checkpointing: true
+  
+  # Logging and validation
+  logging_steps: 10
+  validation_steps: 500
+  checkpointing_steps: 500
+  
+  # Reproducibility
+  seed: 42
+  
+  # Monitoring
+  report_to: null  # Options: wandb, tensorboard
+  
+  # Hardware optimization
+  dataloader_num_workers: 4
+  pin_memory: true
+
+# Validation settings
+validation:
+  validation_prompts:
+    - "A beautiful landscape with mountains and lakes"
+    - "A futuristic city at sunset"
+    - "A cute cat sitting on a windowsill"
+    - "Abstract art with vibrant colors"
+    - "A serene forest scene with sunlight filtering through trees"
+  guidance_scale: 7.5
+  num_inference_steps: 20
+
+# W&B Configuration (optional)
+wandb:
+  project_name: "flux-finetuning"
+  run_name: "flux-lora-experiment"
+  tags:
+    - "flux"
+    - "lora"
+    - "text2image"
+  notes: "FLUX LoRA finetuning experiment"
+
+# Memory optimization settings for A40
+memory_optimization:
+  # Enable gradient checkpointing
+  gradient_checkpointing: true
+  
+  # Use attention slicing for memory efficiency
+  attention_slicing: true
+  
+  # CPU offloading for large models
+  cpu_offload: false
+  
+  # Memory efficient attention
+  use_memory_efficient_attention: true

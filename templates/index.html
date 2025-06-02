@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Diffusion Training Studio{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Welcome Section -->
+    <div class="col-12 mb-4">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-body text-center py-5">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-magic text-primary me-3"></i>
+                    Welcome to Diffusion Training Studio
+                </h1>
+                <p class="lead mb-4">
+                    Train state-of-the-art diffusion models with ease. 
+                    Support for FLUX text-to-image and Wan2.1 image-to-video models.
+                </p>
+                <a href="{{ url_for('train_page') }}" class="btn btn-primary btn-lg pulse">
+                    <i class="fas fa-rocket me-2"></i>
+                    Start Training
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Model Cards -->
+    <div class="col-md-6 mb-4">
+        <div class="card model-card animate__animated animate__fadeInLeft">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary rounded-circle p-3 me-3">
+                        <i class="fas fa-image fa-2x text-white"></i>
+                    </div>
+                    <div>
+                        <h4 class="card-title mb-1">FLUX Text-to-Image</h4>
+                        <p class="text-muted mb-0">Generate stunning images from text</p>
+                    </div>
+                </div>
+                <p class="card-text">
+                    Train FLUX models for high-quality text-to-image generation. 
+                    Perfect for art, photography, and creative applications.
+                </p>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <small class="text-muted">Resolution</small>
+                        <div class="fw-bold">Up to 2K</div>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">Training Time</small>
+                        <div class="fw-bold">2-4 hours</div>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">VRAM</small>
+                        <div class="fw-bold">16-48GB</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('train_page') }}?model=flux" class="btn btn-outline-primary mt-3">
+                    <i class="fas fa-play me-2"></i>Train FLUX
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card model-card animate__animated animate__fadeInRight">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-success rounded-circle p-3 me-3">
+                        <i class="fas fa-video fa-2x text-white"></i>
+                    </div>
+                    <div>
+                        <h4 class="card-title mb-1">Wan2.1 Image-to-Video</h4>
+                        <p class="text-muted mb-0">Animate images into videos</p>
+                    </div>
+                </div>
+                <p class="card-text">
+                    Train Wan2.1 models to create smooth video animations from static images. 
+                    Ideal for motion graphics and video content.
+                </p>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <small class="text-muted">Resolution</small>
+                        <div class="fw-bold">720p-1080p</div>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">Training Time</small>
+                        <div class="fw-bold">4-8 hours</div>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">VRAM</small>
+                        <div class="fw-bold">24-48GB</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('train_page') }}?model=wan2.1" class="btn btn-outline-success mt-3">
+                    <i class="fas fa-play me-2"></i>Train Wan2.1
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Features Section -->
+    <div class="col-12 mb-4">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-body">
+                <h3 class="card-title mb-4">
+                    <i class="fas fa-star text-warning me-2"></i>
+                    Key Features
+                </h3>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="bg-primary bg-opacity-20 rounded-circle p-3 d-inline-block mb-2">
+                                <i class="fas fa-magic fa-2x text-primary"></i>
+                            </div>
+                            <h5>Auto Captioning</h5>
+                            <p class="text-muted small">AI-powered automatic caption generation for your images</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="bg-success bg-opacity-20 rounded-circle p-3 d-inline-block mb-2">
+                                <i class="fas fa-expand-arrows-alt fa-2x text-success"></i>
+                            </div>
+                            <h5>Variable Size</h5>
+                            <p class="text-muted small">Train on any image size without cropping or distortion</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="bg-info bg-opacity-20 rounded-circle p-3 d-inline-block mb-2">
+                                <i class="fas fa-memory fa-2x text-info"></i>
+                            </div>
+                            <h5>Memory Efficient</h5>
+                            <p class="text-muted small">LoRA and QLoRA support for training on consumer GPUs</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <div class="bg-warning bg-opacity-20 rounded-circle p-3 d-inline-block mb-2">
+                                <i class="fas fa-chart-line fa-2x text-warning"></i>
+                            </div>
+                            <h5>Real-time Monitoring</h5>
+                            <p class="text-muted small">Live training progress and performance metrics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Sessions -->
+    <div class="col-12">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-history text-info me-2"></i>
+                        Recent Training Sessions
+                    </h3>
+                    <a href="{{ url_for('monitor') }}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-eye me-1"></i>View All
+                    </a>
+                </div>
+                
+                <div id="recentSessions">
+                    <div class="text-center py-4">
+                        <div class="loading-spinner"></div>
+                        <p class="text-muted mt-2">Loading recent sessions...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button -->
+<div class="floating-action">
+    <a href="{{ url_for('train_page') }}" class="btn btn-primary btn-lg rounded-circle glow" title="Start New Training">
+        <i class="fas fa-plus fa-2x"></i>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load recent sessions
+    function loadRecentSessions() {
+        fetch('/api/sessions')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('recentSessions');
+                
+                if (data.sessions.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No training sessions yet. Start your first training!</p>
+                            <a href="${window.location.origin}/train" class="btn btn-primary">
+                                <i class="fas fa-rocket me-2"></i>Start Training
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Show last 3 sessions
+                const recentSessions = data.sessions.slice(-3).reverse();
+                
+                container.innerHTML = recentSessions.map(session => {
+                    const startTime = new Date(session.start_time);
+                    const duration = session.end_time ? 
+                        Math.floor((new Date(session.end_time) - startTime) / 1000) : 
+                        Math.floor((new Date() - startTime) / 1000);
+                    
+                    return `
+                        <div class="row align-items-center py-3 border-bottom">
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-${session.model_type === 'flux' ? 'image' : 'video'} text-${session.model_type === 'flux' ? 'primary' : 'success'} me-2"></i>
+                                    <div>
+                                        <div class="fw-bold">${session.model_type.toUpperCase()}</div>
+                                        <small class="text-muted">${startTime.toLocaleDateString()}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="status-badge status-${session.status}">
+                                    ${session.status.replace('_', ' ').toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar" style="width: ${session.progress}%"></div>
+                                </div>
+                                <small class="text-muted">${session.progress}% complete</small>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <small class="text-muted">Duration: ${formatDuration(duration)}</small>
+                                <br>
+                                <a href="/monitor" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            })
+            .catch(error => {
+                console.error('Error loading sessions:', error);
+                document.getElementById('recentSessions').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                        <p class="text-muted">Error loading recent sessions</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Load sessions on page load
+    document.addEventListener('DOMContentLoaded', loadRecentSessions);
+    
+    // Refresh sessions every 30 seconds
+    setInterval(loadRecentSessions, 30000);
+</script>
+{% endblock %}

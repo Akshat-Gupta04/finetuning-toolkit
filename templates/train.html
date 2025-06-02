@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+
+{% block title %}Train Model - Diffusion Training Studio{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Training Configuration -->
+    <div class="col-lg-8 mb-4">
+        <div class="card animate__animated animate__fadeInLeft">
+            <div class="card-body">
+                <h3 class="card-title mb-4">
+                    <i class="fas fa-cog text-primary me-2"></i>
+                    Training Configuration
+                </h3>
+
+                <form id="trainingForm">
+                    <!-- Model Selection -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-robot me-2"></i>Model Type
+                        </label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card model-selector" data-model="flux">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-image fa-3x text-primary mb-3"></i>
+                                        <h5>FLUX</h5>
+                                        <p class="text-muted small">Text-to-Image Generation</p>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="model_type" value="flux" id="flux" checked>
+                                            <label class="form-check-label" for="flux">Select FLUX</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card model-selector" data-model="wan2_1_i2v">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-video fa-3x text-success mb-3"></i>
+                                        <h5>Wan2.1 I2V</h5>
+                                        <p class="text-muted small">Image-to-Video Generation</p>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="model_type" value="wan2_1_i2v" id="wan2_1_i2v">
+                                            <label class="form-check-label" for="wan2_1_i2v">Select Wan2.1 I2V</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card model-selector" data-model="wan2_1_t2v">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-film fa-3x text-warning mb-3"></i>
+                                        <h5>Wan2.1 T2V</h5>
+                                        <p class="text-muted small">Text-to-Video Generation</p>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="model_type" value="wan2_1_t2v" id="wan2_1_t2v">
+                                            <label class="form-check-label" for="wan2_1_t2v">Select Wan2.1 T2V</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-upload me-2"></i>Training Images
+                        </label>
+                        <div class="upload-zone" id="uploadZone">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h5>Drop images here or click to browse</h5>
+                            <p class="text-muted">Supports JPG, PNG, WEBP, BMP, TIFF</p>
+                            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-folder-open me-2"></i>Browse Files
+                            </button>
+                        </div>
+                        <div id="fileList" class="mt-3" style="display: none;"></div>
+                    </div>
+
+                    <!-- LoRA Configuration -->
+                    <div class="mb-4">
+                        <h5>
+                            <i class="fas fa-layer-group text-warning me-2"></i>
+                            LoRA Configuration
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">LoRA Type</label>
+                                    <select class="form-select" name="lora_type">
+                                        <option value="lora" selected>LoRA (Standard)</option>
+                                        <option value="qlora">QLoRA (4-bit Quantized)</option>
+                                        <option value="dora">DoRA (Weight-Decomposed)</option>
+                                    </select>
+                                    <small class="text-muted">QLoRA uses less memory, DoRA provides better quality</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">LoRA Rank</label>
+                                    <select class="form-select" name="lora_rank">
+                                        <option value="16">16 (Ultra Fast)</option>
+                                        <option value="32">32 (Fast)</option>
+                                        <option value="64" selected>64 (Balanced)</option>
+                                        <option value="128">128 (High Quality)</option>
+                                        <option value="256">256 (Maximum)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">LoRA Alpha</label>
+                                    <select class="form-select" name="lora_alpha">
+                                        <option value="16">16</option>
+                                        <option value="32">32</option>
+                                        <option value="64" selected>64</option>
+                                        <option value="128">128</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">LoRA Dropout</label>
+                                    <select class="form-select" name="lora_dropout">
+                                        <option value="0.0">0.0 (No Dropout)</option>
+                                        <option value="0.1" selected>0.1 (Recommended)</option>
+                                        <option value="0.2">0.2</option>
+                                        <option value="0.3">0.3</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Parameters -->
+                    <div class="mb-4">
+                        <h5>
+                            <i class="fas fa-sliders-h text-info me-2"></i>
+                            Training Parameters
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Batch Size</label>
+                                    <select class="form-select" name="batch_size">
+                                        <option value="1">1 (Memory Efficient)</option>
+                                        <option value="2">2 (Balanced)</option>
+                                        <option value="4" selected>4 (Recommended)</option>
+                                        <option value="8">8 (High Performance)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Learning Rate</label>
+                                    <select class="form-select" name="learning_rate">
+                                        <option value="5e-5">5e-5 (Conservative)</option>
+                                        <option value="1e-4" selected>1e-4 (Recommended)</option>
+                                        <option value="2e-4">2e-4 (Aggressive)</option>
+                                        <option value="5e-4">5e-4 (Very Aggressive)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Max Training Steps</label>
+                                    <select class="form-select" name="max_steps">
+                                        <option value="1000">1000 (Quick Test)</option>
+                                        <option value="2500">2500 (Fast Training)</option>
+                                        <option value="5000" selected>5000 (Recommended)</option>
+                                        <option value="10000">10000 (High Quality)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Mixed Precision</label>
+                                    <select class="form-select" name="mixed_precision">
+                                        <option value="no">No (Full Precision)</option>
+                                        <option value="fp16">FP16 (Half Precision)</option>
+                                        <option value="bf16" selected>BF16 (A40 Optimized)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dataset Parameters -->
+                    <div class="mb-4">
+                        <h5>
+                            <i class="fas fa-database text-warning me-2"></i>
+                            Dataset Parameters
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Captioning Model</label>
+                                    <select class="form-select" name="captioning_model">
+                                        <option value="blip">BLIP (Fast)</option>
+                                        <option value="blip2" selected>BLIP2 (High Quality)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Quality Threshold</label>
+                                    <select class="form-select" name="quality_threshold">
+                                        <option value="0.5">0.5 (Permissive)</option>
+                                        <option value="0.7" selected>0.7 (Balanced)</option>
+                                        <option value="0.8">0.8 (Strict)</option>
+                                        <option value="0.9">0.9 (Very Strict)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Min Resolution</label>
+                                    <select class="form-select" name="min_resolution">
+                                        <option value="256">256px</option>
+                                        <option value="512" selected>512px</option>
+                                        <option value="768">768px</option>
+                                        <option value="1024">1024px</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Max Resolution</label>
+                                    <select class="form-select" name="max_resolution">
+                                        <option value="1024">1024px</option>
+                                        <option value="1536">1536px</option>
+                                        <option value="2048" selected>2048px</option>
+                                        <option value="4096">4096px</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Start Training Button -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg" id="startTrainingBtn">
+                            <i class="fas fa-rocket me-2"></i>
+                            Start Training
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Progress -->
+    <div class="col-lg-4">
+        <div class="card animate__animated animate__fadeInRight">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-line text-success me-2"></i>
+                    Training Progress
+                </h5>
+
+                <div id="trainingStatus" style="display: none;">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Progress</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Status:</strong>
+                        <span class="status-badge status-preparing" id="statusText">PREPARING</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Session ID:</strong>
+                        <code id="sessionId" class="text-info"></code>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-success btn-sm" id="downloadBtn" style="display: none;" onclick="downloadModel()">
+                            <i class="fas fa-download me-2"></i>Download Model
+                        </button>
+                    </div>
+
+                    <!-- Training Logs -->
+                    <div class="mb-3">
+                        <h6>Training Logs</h6>
+                        <div class="log-container" id="logContainer">
+                            <div class="text-muted">Waiting for training to start...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="trainingIdle">
+                    <div class="text-center py-4">
+                        <i class="fas fa-play-circle fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Configure your training parameters and upload images to get started.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips Card -->
+        <div class="card mt-4 animate__animated animate__fadeInRight" style="animation-delay: 0.2s;">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb text-warning me-2"></i>
+                    Training Tips
+                </h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Use 50-200 high-quality images for best results
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Higher batch sizes train faster but use more memory
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        BLIP2 provides better captions but is slower
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Variable-size training preserves image quality
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let uploadId = null;
+    let currentSessionId = null;
+
+    // File upload handling
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+
+    // Drag and drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    uploadZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    function handleFiles(files) {
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        for (let file of files) {
+            formData.append('files', file);
+        }
+
+        // Show upload progress
+        uploadZone.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p class="mt-2">Uploading ${files.length} files...</p>
+        `;
+
+        fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            uploadId = data.upload_id;
+
+            // Show success
+            uploadZone.innerHTML = `
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5>Upload Complete</h5>
+                <p class="text-muted">${data.count} files uploaded successfully</p>
+            `;
+
+            // Show file list
+            fileList.style.display = 'block';
+            fileList.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check me-2"></i>
+                    <strong>${data.count} files uploaded:</strong> ${data.files.slice(0, 3).join(', ')}
+                    ${data.files.length > 3 ? ` and ${data.files.length - 3} more...` : ''}
+                </div>
+            `;
+        })
+        .catch(error => {
+            uploadZone.innerHTML = `
+                <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                <h5>Upload Failed</h5>
+                <p class="text-muted">${error.message}</p>
+                <button class="btn btn-outline-primary" onclick="location.reload()">Try Again</button>
+            `;
+        });
+    }
+
+    // Model selection
+    document.querySelectorAll('.model-selector').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.model-selector').forEach(c => c.classList.remove('glow'));
+            card.classList.add('glow');
+
+            const radio = card.querySelector('input[type="radio"]');
+            radio.checked = true;
+        });
+    });
+
+    // Training form submission
+    document.getElementById('trainingForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        if (!uploadId) {
+            showToast('Please upload training images first', 'error');
+            return;
+        }
+
+        const formData = new FormData(e.target);
+        const trainingParams = {
+            batch_size: parseInt(formData.get('batch_size')),
+            learning_rate: parseFloat(formData.get('learning_rate')),
+            max_steps: parseInt(formData.get('max_steps')),
+            lora_rank: parseInt(formData.get('lora_rank'))
+        };
+
+        const datasetParams = {
+            captioning_model: formData.get('captioning_model'),
+            quality_threshold: parseFloat(formData.get('quality_threshold')),
+            min_resolution: parseInt(formData.get('min_resolution')),
+            max_resolution: parseInt(formData.get('max_resolution'))
+        };
+
+        const requestData = {
+            model_type: formData.get('model_type'),
+            upload_id: uploadId,
+            training_params: trainingParams,
+            dataset_params: datasetParams
+        };
+
+        // Start training
+        fetch('/api/train', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            currentSessionId = data.session_id;
+            window.currentSessionId = currentSessionId;
+
+            // Show training status
+            document.getElementById('trainingIdle').style.display = 'none';
+            document.getElementById('trainingStatus').style.display = 'block';
+            document.getElementById('sessionId').textContent = currentSessionId;
+
+            // Subscribe to session updates
+            socket.emit('subscribe_session', {session_id: currentSessionId});
+
+            // Clear log container
+            document.getElementById('logContainer').innerHTML = '';
+
+            showToast('Training started successfully!', 'success');
+        })
+        .catch(error => {
+            showToast(`Failed to start training: ${error.message}`, 'error');
+        });
+    });
+
+    function downloadModel() {
+        if (currentSessionId) {
+            window.location.href = `/api/download/${currentSessionId}`;
+        }
+    }
+
+    // Check URL parameters for model selection
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelParam = urlParams.get('model');
+    if (modelParam) {
+        const radio = document.querySelector(`input[value="${modelParam}"]`);
+        if (radio) {
+            radio.checked = true;
+            radio.closest('.model-selector').classList.add('glow');
+        }
+    }
+</script>
+{% endblock %}

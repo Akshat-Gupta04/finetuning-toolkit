@@ -1,0 +1,273 @@
+# Unified Configuration for Both Wan2.1 and FLUX Training
+# Optimized for A40 GPU (48GB VRAM)
+
+model:
+  # Model selection - set via command line
+  name: "unified-diffusion-training"
+  cache_dir: "./cache"
+
+  # LoRA configuration
+  use_lora: true
+  lora_type: "lora"  # Options: lora, qlora, dora
+  lora_rank: 64
+  lora_alpha: 64
+  lora_dropout: 0.1
+
+  # Model-specific LoRA target modules
+  lora_target_modules:
+    flux: ["to_q", "to_k", "to_v", "to_out.0", "proj_in", "proj_out", "ff.net.0.proj", "ff.net.2"]
+    wan2_1_i2v: ["to_q", "to_k", "to_v", "to_out.0", "proj_in", "proj_out", "ff.net.0.proj", "ff.net.2"]
+    wan2_1_t2v: ["to_q", "to_k", "to_v", "to_out.0", "proj_in", "proj_out", "ff.net.0.proj", "ff.net.2"]
+
+  # QLoRA configuration (4-bit quantization)
+  use_qlora: false
+  qlora_config:
+    load_in_4bit: true
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "bfloat16"
+
+  # DoRA configuration (Weight-Decomposed Low-Rank Adaptation)
+  use_dora: false
+  dora_config:
+    use_dora: true
+
+  # Quantization options
+  use_8bit: false
+  use_4bit: false
+
+training:
+  output_dir: "./outputs"
+  logging_dir: "./logs"
+  cache_dir: "./cache"
+  seed: 42
+
+  # Training parameters optimized for A40
+  train_batch_size: 4  # Adjust based on model and resolution
+  gradient_accumulation_steps: 4
+  num_train_epochs: 100
+  max_train_steps: 5000
+  learning_rate: 1e-4
+  scale_lr: false
+  lr_scheduler: "cosine"
+  lr_warmup_steps: 500
+  lr_num_cycles: 1
+
+  # Optimization for A40
+  use_8bit_adam: false
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1e-2
+  adam_epsilon: 1e-08
+  max_grad_norm: 1.0
+
+  # Memory optimization
+  gradient_checkpointing: true
+  mixed_precision: "bf16"  # A40 supports bf16
+  allow_tf32: true
+  use_ema: false
+  enable_xformers_memory_efficient_attention: true
+
+  # Data loading optimized for A40
+  dataloader_num_workers: 8
+  pin_memory: true
+  use_bucket_sampler: true
+  use_aspect_ratio_grouping: false
+
+  # Checkpointing
+  checkpointing_steps: 500
+  checkpoints_total_limit: 3
+  resume_from_checkpoint: null
+
+  # Validation
+  validation_steps: 500
+  validation_epochs: 10
+
+  # Logging and monitoring
+  report_to: "wandb"
+  logging_steps: 50
+  save_steps: 500
+
+  # Variable size training parameters
+  max_width: 1280
+  max_height: 720
+  max_resolution: 1024
+  num_frames: 81
+  frame_rate: 16
+
+  # Aspect ratio buckets for variable-size training
+  bucket_sizes:
+    # Square ratios
+    - [512, 512]
+    - [576, 576]
+    - [640, 640]
+    - [704, 704]
+    - [768, 768]
+    - [832, 832]
+    - [896, 896]
+    - [960, 960]
+    - [1024, 1024]
+    # Landscape ratios
+    - [1280, 720]   # 16:9
+    - [1152, 648]   # 16:9
+    - [1024, 576]   # 16:9
+    - [960, 540]    # 16:9
+    - [1024, 768]   # 4:3
+    - [896, 672]    # 4:3
+    - [768, 576]    # 4:3
+    # Portrait ratios
+    - [720, 1280]   # 9:16
+    - [648, 1152]   # 9:16
+    - [576, 1024]   # 9:16
+    - [540, 960]    # 9:16
+    - [768, 1024]   # 3:4
+    - [672, 896]    # 3:4
+    - [576, 768]    # 3:4
+
+dataset:
+  train_data_dir: "./data/train"
+  validation_data_dir: "./data/validation"
+
+  # Data format
+  image_column: "image"
+  video_column: "video"
+  caption_column: "caption"
+
+  # Text processing
+  max_sequence_length: 256
+  tokenizer_max_length: 256
+
+  # Video processing (for Wan2.1)
+  video_length: 81
+  sample_stride: 1
+  sample_n_frames: 81
+
+  # Image processing
+  resolution: 1024  # For fixed-size training
+
+  # Variable size processing
+  resize_mode: "pad"  # Options: pad, crop, stretch
+  random_flip: 0.5
+  normalize: true
+
+  # Preprocessing
+  preprocessing_num_workers: 8
+
+validation:
+  # Wan2.1 validation
+  validation_prompt: "A beautiful landscape with flowing water"
+  num_validation_videos: 2
+
+  # FLUX validation
+  validation_prompts:
+    - "A serene mountain landscape at sunset"
+    - "A portrait of a person in artistic style"
+    - "An abstract geometric composition"
+    - "A futuristic cityscape"
+  num_validation_images: 4
+
+  # Common validation settings
+  negative_prompt: "blurry, low quality, distorted, ugly, deformed"
+  guidance_scale: 5.0
+  num_inference_steps: 50
+  validation_epochs: 10
+
+wandb:
+  project_name: "unified-diffusion-training"
+  run_name: "unified-experiment"
+  tags: ["unified", "variable-size", "a40-optimized"]
+  notes: "Unified training with variable-size support optimized for A40"
+
+# Variable size specific settings
+variable_size:
+  # Aspect ratio preservation
+  preserve_aspect_ratio: true
+  pad_color: [0, 0, 0]  # RGB values for padding
+
+  # Bucket optimization
+  enable_bucketing: true
+  bucket_tolerance: 0.1  # Aspect ratio tolerance for grouping
+  min_bucket_size: 2     # Minimum samples per bucket
+
+  # Dynamic resizing
+  dynamic_resolution: false
+  resolution_steps: [512, 640, 768, 896, 1024]
+
+  # Memory optimization for A40
+  max_pixels_per_batch: 4194304  # 2048*2048 - A40 can handle large batches
+  adaptive_batch_size: false
+
+# Model-specific overrides (applied automatically based on model_type)
+model_overrides:
+  flux:
+    pretrained_model_name_or_path: "black-forest-labs/FLUX.1-dev"
+    guidance_scale: 3.5
+    num_inference_steps: 28
+    model_type: "text_to_image"
+
+  wan2_1_i2v:
+    pretrained_model_name_or_path: "Wan-AI/Wan2.1-I2V-14B-720P-Diffusers"
+    guidance_scale: 5.0
+    num_inference_steps: 50
+    model_type: "image_to_video"
+    num_frames: 81
+    frame_rate: 16
+
+  wan2_1_t2v:
+    pretrained_model_name_or_path: "Wan-AI/Wan2.1-T2V-14B-720P-Diffusers"
+    guidance_scale: 7.5
+    num_inference_steps: 50
+    model_type: "text_to_video"
+    num_frames: 81
+    frame_rate: 16
+
+# A40-specific optimizations
+hardware_optimizations:
+  # A40 has 48GB VRAM - can handle larger batches and models
+  enable_large_batch_training: true
+  use_gradient_checkpointing: true
+  enable_memory_efficient_attention: true
+
+  # A40 supports these features
+  use_tf32: true
+  use_bf16: true
+
+  # Optimal settings for A40
+  recommended_batch_sizes:
+    flux_512: 8
+    flux_1024: 4
+    wan2_1_i2v_720p: 2
+    wan2_1_i2v_1080p: 1
+    wan2_1_t2v_720p: 2
+    wan2_1_t2v_1080p: 1
+
+# LoRA/QLoRA specific configurations
+lora_configs:
+  # Standard LoRA settings
+  lora:
+    rank: 64
+    alpha: 64
+    dropout: 0.1
+    bias: "none"
+    task_type: "DIFFUSION"
+
+  # QLoRA settings (4-bit quantization)
+  qlora:
+    rank: 32
+    alpha: 32
+    dropout: 0.1
+    bias: "none"
+    task_type: "DIFFUSION"
+    load_in_4bit: true
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "bfloat16"
+
+  # DoRA settings (Weight-Decomposed Low-Rank Adaptation)
+  dora:
+    rank: 64
+    alpha: 64
+    dropout: 0.1
+    bias: "none"
+    task_type: "DIFFUSION"
+    use_dora: true

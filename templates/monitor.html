@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}Monitor Training - Diffusion Training Studio{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Training Sessions Overview -->
+    <div class="col-12 mb-4">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-chart-line text-info me-2"></i>
+                        Training Sessions
+                    </h3>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm me-2" onclick="refreshSessions()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <a href="{{ url_for('train_page') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>New Training
+                        </a>
+                    </div>
+                </div>
+                
+                <div id="sessionsContainer">
+                    <div class="text-center py-4">
+                        <div class="loading-spinner"></div>
+                        <p class="text-muted mt-2">Loading training sessions...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Session Details Modal -->
+    <div class="modal fade" id="sessionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Session Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="sessionDetails">
+                    <!-- Session details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="downloadSessionBtn" style="display: none;">
+                        <i class="fas fa-download me-2"></i>Download Model
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+            <div class="card-body text-center">
+                <i class="fas fa-play-circle fa-2x text-primary mb-2"></i>
+                <h4 id="totalSessions">0</h4>
+                <p class="text-muted mb-0">Total Sessions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+            <div class="card-body text-center">
+                <i class="fas fa-spinner fa-2x text-warning mb-2"></i>
+                <h4 id="activeSessions">0</h4>
+                <p class="text-muted mb-0">Active Sessions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+            <div class="card-body text-center">
+                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                <h4 id="completedSessions">0</h4>
+                <p class="text-muted mb-0">Completed</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card animate__animated animate__fadeInUp" style="animation-delay: 0.4s;">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                <h4 id="failedSessions">0</h4>
+                <p class="text-muted mb-0">Failed</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let sessions = [];
+    let selectedSessionId = null;
+    
+    function refreshSessions() {
+        fetch('/api/sessions')
+            .then(response => response.json())
+            .then(data => {
+                sessions = data.sessions;
+                renderSessions();
+                updateStatistics();
+            })
+            .catch(error => {
+                console.error('Error loading sessions:', error);
+                document.getElementById('sessionsContainer').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                        <p class="text-muted">Error loading sessions</p>
+                        <button class="btn btn-outline-primary" onclick="refreshSessions()">Try Again</button>
+                    </div>
+                `;
+            });
+    }
+    
+    function renderSessions() {
+        const container = document.getElementById('sessionsContainer');
+        
+        if (sessions.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No training sessions found</p>
+                    <a href="/train" class="btn btn-primary">
+                        <i class="fas fa-rocket me-2"></i>Start Your First Training
+                    </a>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort sessions by start time (newest first)
+        const sortedSessions = [...sessions].sort((a, b) => 
+            new Date(b.start_time) - new Date(a.start_time)
+        );
+        
+        container.innerHTML = sortedSessions.map(session => {
+            const startTime = new Date(session.start_time);
+            const endTime = session.end_time ? new Date(session.end_time) : null;
+            const duration = endTime ? 
+                Math.floor((endTime - startTime) / 1000) : 
+                Math.floor((new Date() - startTime) / 1000);
+            
+            const statusIcon = {
+                'preparing': 'fas fa-cog fa-spin',
+                'dataset_preparation': 'fas fa-database',
+                'loading_model': 'fas fa-download',
+                'training': 'fas fa-brain',
+                'completed': 'fas fa-check-circle',
+                'failed': 'fas fa-exclamation-triangle'
+            }[session.status] || 'fas fa-question-circle';
+            
+            const statusColor = {
+                'preparing': 'warning',
+                'dataset_preparation': 'info',
+                'loading_model': 'info',
+                'training': 'primary',
+                'completed': 'success',
+                'failed': 'danger'
+            }[session.status] || 'secondary';
+            
+            return `
+                <div class="card mb-3 session-card" data-session-id="${session.session_id}">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-${session.model_type === 'flux' ? 'image' : 'video'} fa-2x text-${session.model_type === 'flux' ? 'primary' : 'success'} mb-2"></i>
+                                    <div class="fw-bold">${session.model_type.toUpperCase()}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div>
+                                    <strong>Session ID:</strong><br>
+                                    <code class="text-info">${session.session_id.substring(0, 8)}...</code>
+                                </div>
+                                <div class="mt-1">
+                                    <small class="text-muted">
+                                        Started: ${startTime.toLocaleString()}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="status-badge status-${session.status}">
+                                    <i class="${statusIcon} me-1"></i>
+                                    ${session.status.replace('_', ' ').toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-1">
+                                    <div class="d-flex justify-content-between">
+                                        <small>Progress</small>
+                                        <small>${session.progress}%</small>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-${statusColor}" style="width: ${session.progress}%"></div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Duration: ${formatDuration(duration)}</small>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <button class="btn btn-outline-info btn-sm" onclick="viewSession('${session.session_id}')">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </button>
+                                ${session.status === 'completed' ? `
+                                    <button class="btn btn-outline-success btn-sm mt-1" onclick="downloadModel('${session.session_id}')">
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function updateStatistics() {
+        const stats = {
+            total: sessions.length,
+            active: sessions.filter(s => ['preparing', 'dataset_preparation', 'loading_model', 'training'].includes(s.status)).length,
+            completed: sessions.filter(s => s.status === 'completed').length,
+            failed: sessions.filter(s => s.status === 'failed').length
+        };
+        
+        document.getElementById('totalSessions').textContent = stats.total;
+        document.getElementById('activeSessions').textContent = stats.active;
+        document.getElementById('completedSessions').textContent = stats.completed;
+        document.getElementById('failedSessions').textContent = stats.failed;
+    }
+    
+    function viewSession(sessionId) {
+        selectedSessionId = sessionId;
+        
+        // Show loading in modal
+        document.getElementById('sessionDetails').innerHTML = `
+            <div class="text-center py-4">
+                <div class="loading-spinner"></div>
+                <p class="text-muted mt-2">Loading session details...</p>
+            </div>
+        `;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('sessionModal'));
+        modal.show();
+        
+        // Load session details
+        fetch(`/api/status/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                renderSessionDetails(data);
+                
+                // Show download button if completed
+                const downloadBtn = document.getElementById('downloadSessionBtn');
+                if (data.status === 'completed') {
+                    downloadBtn.style.display = 'block';
+                    downloadBtn.onclick = () => downloadModel(sessionId);
+                } else {
+                    downloadBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                document.getElementById('sessionDetails').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                        <p class="text-muted">Error loading session details: ${error.message}</p>
+                    </div>
+                `;
+            });
+    }
+    
+    function renderSessionDetails(session) {
+        const startTime = new Date(session.start_time);
+        const endTime = session.end_time ? new Date(session.end_time) : null;
+        const duration = endTime ? 
+            Math.floor((endTime - startTime) / 1000) : 
+            Math.floor((new Date() - startTime) / 1000);
+        
+        document.getElementById('sessionDetails').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Session Information</h6>
+                    <table class="table table-dark table-sm">
+                        <tr>
+                            <td><strong>Session ID:</strong></td>
+                            <td><code>${session.session_id}</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td><span class="status-badge status-${session.status}">${session.status.replace('_', ' ').toUpperCase()}</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Progress:</strong></td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" style="width: ${session.progress}%">${session.progress}%</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Started:</strong></td>
+                            <td>${startTime.toLocaleString()}</td>
+                        </tr>
+                        ${endTime ? `
+                        <tr>
+                            <td><strong>Completed:</strong></td>
+                            <td>${endTime.toLocaleString()}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td><strong>Duration:</strong></td>
+                            <td>${formatDuration(duration)}</td>
+                        </tr>
+                        ${session.error ? `
+                        <tr>
+                            <td><strong>Error:</strong></td>
+                            <td class="text-danger">${session.error}</td>
+                        </tr>
+                        ` : ''}
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>Recent Logs</h6>
+                    <div class="log-container" style="max-height: 300px;">
+                        ${session.logs.map(log => `
+                            <div class="log-entry log-${log.level}">
+                                <span class="text-muted">[${new Date(log.timestamp).toLocaleTimeString()}]</span>
+                                ${log.message}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn btn-outline-info btn-sm mt-2" onclick="loadFullLogs('${session.session_id}')">
+                        <i class="fas fa-list me-1"></i>View Full Logs
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function loadFullLogs(sessionId) {
+        fetch(`/api/logs/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                const logContainer = document.querySelector('.log-container');
+                logContainer.innerHTML = data.logs.map(log => `
+                    <div class="log-entry log-${log.level}">
+                        <span class="text-muted">[${new Date(log.timestamp).toLocaleTimeString()}]</span>
+                        ${log.message}
+                    </div>
+                `).join('');
+                logContainer.scrollTop = logContainer.scrollHeight;
+            })
+            .catch(error => {
+                showToast(`Error loading logs: ${error.message}`, 'error');
+            });
+    }
+    
+    function downloadModel(sessionId) {
+        window.location.href = `/api/download/${sessionId}`;
+    }
+    
+    // Auto-refresh sessions every 30 seconds
+    setInterval(refreshSessions, 30000);
+    
+    // Load sessions on page load
+    document.addEventListener('DOMContentLoaded', refreshSessions);
+    
+    // Listen for real-time updates
+    socket.on('training_progress', function(data) {
+        // Update session in the list
+        const sessionCard = document.querySelector(`[data-session-id="${data.session_id}"]`);
+        if (sessionCard) {
+            const progressBar = sessionCard.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${data.progress}%`;
+            }
+        }
+        
+        // Update modal if it's the current session
+        if (selectedSessionId === data.session_id) {
+            const modalProgressBar = document.querySelector('#sessionModal .progress-bar');
+            if (modalProgressBar) {
+                modalProgressBar.style.width = `${data.progress}%`;
+                modalProgressBar.textContent = `${data.progress}%`;
+            }
+        }
+    });
+    
+    socket.on('training_complete', function(data) {
+        // Refresh sessions to show updated status
+        refreshSessions();
+        
+        // Show notification
+        if (data.status === 'completed') {
+            showToast(`Training completed for session ${data.session_id.substring(0, 8)}`, 'success');
+        } else {
+            showToast(`Training failed for session ${data.session_id.substring(0, 8)}`, 'error');
+        }
+    });
+</script>
+{% endblock %}
